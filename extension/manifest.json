@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "Sindri Sheet",
+  "version": "1.0.0",
+  "description": "AI 기반 소프트웨어 기획 스프레드시트 - Chrome Side Panel",
+  "permissions": ["sidePanel", "storage"],
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "background": {
+    "service_worker": "service-worker.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "Sindri Sheet 열기"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
