@@ -8,6 +8,7 @@ import { setupPassport } from "./auth/passport.js";
 import { authRouter } from "./auth/routes.js";
 import { projectsRouter } from "./api/projects.js";
 import { createSheetsRouter } from "./api/sheets.js";
+import { createDesignsRouter } from "./api/designs.js";
 import { tokensRouter } from "./api/tokens.js";
 import { setupMcpTransport } from "./mcp/transport.js";
 import { setupWebSocket, broadcastChange } from "./ws/index.js";
@@ -39,8 +40,10 @@ app.use("/auth", authRouter);
 // ─── API 라우트 ──────────────────────────────────────────────────────────────
 
 const sheetsRouter = createSheetsRouter(broadcastChange);
+const designsRouter = createDesignsRouter();
 app.use("/api/v1", projectsRouter);
 app.use("/api/v1", sheetsRouter);
+app.use("/api/v1", designsRouter);
 app.use("/api/v1", tokensRouter);
 
 // ─── MCP 트랜스포트 ──────────────────────────────────────────────────────────

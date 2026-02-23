@@ -32,6 +32,11 @@ export default function LandingPage() {
                     <a href="/auth/github" className="btn-secondary">
                         GitHub로 시작하기
                     </a>
+                    {import.meta.env.DEV && (
+                        <a href="/auth/dev-login" className="btn-dev">
+                            Dev 로그인
+                        </a>
+                    )}
                 </div>
             </div>
 

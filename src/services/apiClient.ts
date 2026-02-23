@@ -92,6 +92,42 @@ export const api = {
       },
     ),
 
+  // ─── Designs ────────────────────────────────────────────────────
+  getDesigns: (sheetId: string) =>
+    request<import('../types/design').DesignListItem[]>(
+      `/api/v1/sheets/${sheetId}/designs`,
+    ),
+
+  getDesign: (sheetId: string, designId: string) =>
+    request<import('../types/design').DesignDocument>(
+      `/api/v1/sheets/${sheetId}/designs/${designId}`,
+    ),
+
+  createDesign: (
+    sheetId: string,
+    design: { name: string; screenId?: string; data: import('../types/design').DesignDocument },
+  ) =>
+    request<import('../types/design').DesignDocument>(
+      `/api/v1/sheets/${sheetId}/designs`,
+      { method: 'POST', body: JSON.stringify(design) },
+    ),
+
+  updateDesign: (
+    sheetId: string,
+    designId: string,
+    design: { name?: string; screenId?: string; data: import('../types/design').DesignDocument },
+  ) =>
+    request<{ id: string; version: number; updatedAt: string }>(
+      `/api/v1/sheets/${sheetId}/designs/${designId}`,
+      { method: 'PUT', body: JSON.stringify(design) },
+    ),
+
+  deleteDesign: (sheetId: string, designId: string) =>
+    request<{ success: boolean; deletedId: string }>(
+      `/api/v1/sheets/${sheetId}/designs/${designId}`,
+      { method: 'DELETE' },
+    ),
+
   // ─── MCP Tokens ──────────────────────────────────────────────────
   getTokens: () => request<McpToken[]>('/api/v1/mcp-tokens'),
 

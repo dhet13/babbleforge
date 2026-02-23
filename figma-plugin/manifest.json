@@ -1,0 +1,12 @@
+{
+  "name": "Sindri Sheet Designer",
+  "id": "sindri-sheet-designer",
+  "api": "1.0.0",
+  "main": "dist/code.js",
+  "ui": "dist/ui.html",
+  "editorType": ["figma"],
+  "networkAccess": {
+    "allowedDomains": ["localhost", "*.sindrisheet.com"],
+    "reasoning": "Sindri Sheet 서버에서 시트 데이터를 가져옵니다"
+  }
+}

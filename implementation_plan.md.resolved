@@ -1,0 +1,171 @@
+# AI Chat Spreadsheet Editor (Sindri Sheet Manager)
+
+사용자가 AI 채팅을 통해 Google Spreadsheet 데이터를 생성/수정/삭제하고, 완성된 데이터를 Excel 또는 JSON으로 다운로드할 수 있는 웹 앱을 구축합니다.
+
+## User Review Required
+
+> [!IMPORTANT]
+> **AI API Key 필요**: OpenAI API 키가 필요합니다. 앱 내에서 사용자가 직접 입력하는 방식으로 구현할 예정입니다 (서버 없이 클라이언트에서 직접 호출). 다른 AI 제공자(Gemini 등)를 선호하시면 알려주세요.
+
+> [!IMPORTANT]
+> **서버리스 아키텍처**: 백엔드 서버 없이 프론트엔드만으로 구현합니다. AI API는 클라이언트에서 직접 호출합니다. 서버가 필요하시면 알려주세요.
+
+## Architecture
+
+```mermaid
+graph LR
+    A[사용자] --> B[AI Chat Panel]
+    B --> C[OpenAI API]
+    C --> B
+    B --> D[Data Store - Zustand]
+    D --> E[Sheet Viewer/Editor]
+    D --> F[Export - Excel/JSON]
+```
+
+- **프레임워크**: React 19 + TypeScript + Vite
+- **상태 관리**: Zustand (경량, 간편)
+- **UI**: 커스텀 CSS (Blueprint AI 디자인 시스템 기반: 다크 테마, #FF7A00 액센트)
+- **AI**: OpenAI GPT-4o-mini (Function Calling 활용)
+- **Export**: `xlsx` 라이브러리 (Excel), 네이티브 JSON
+
+## Proposed Changes
+
+### 프로젝트 초기화
+
+#### [NEW] Vite React TypeScript project
+```
+npx create-vite@latest ./ --template react-ts
+```
+
+핵심 의존성:
+- `zustand` — 상태 관리
+- `openai` — AI API 클라이언트
+- `xlsx` — Excel 내보내기
+- `lucide-react` — 아이콘
+
+---
+
+### 데이터 모델 (`src/types/`)
+
+#### [NEW] [sheets.ts](file:///Users/dhet/workspaces/blueprint_ai/src/types/sheets.ts)
+
+7개 시트 탭에 대한 TypeScript 인터페이스 정의:
+
+| Tab | Interface | 주요 필드 |
+|-----|-----------|----------|
+| 메타 & 커뮤니케이션 | `MetaRow` | Project_ID, Project_Name, Vision, Owner, Status, Version |
+| 전역 규칙 | `GlobalRuleRow` | Rule_ID, Policy_Name, Specification |
+| 데이터 모델 | `DataModelRow` | Model_Name, Field_Name, Data_Type, Is_Nullable, Relationship |
+| 기능 & 로직 | `FeatureRow` | Feat_ID, Step, Description, Command_Type, Target_Type |
+| 디자인 시스템 | `DesignTokenRow` | Category, Token_Name, Value, Description |
+| Screen Map | `ScreenRow` | Screen_ID, Screen_Name, Figma_Frame, Related_Feat_ID, Status |
+| Error Dictionary | `ErrorRow` | Error_ID, Error_Type, Severity, User_Message_KO/EN |
+
+---
+
+### 상태 관리 (`src/store/`)
+
+#### [NEW] [sheetStore.ts](file:///Users/dhet/workspaces/blueprint_ai/src/store/sheetStore.ts)
+
+Zustand store로 모든 시트 데이터를 관리:
+- 각 탭별 데이터 배열
+- `addRow(tab, data)` / `updateRow(tab, id, data)` / `deleteRow(tab, id)` — CRUD
+- `activeTab` — 현재 선택된 탭
+- `importFromJSON(data)` / `getExportData()` — 데이터 import/export
+
+#### [NEW] [chatStore.ts](file:///Users/dhet/workspaces/blueprint_ai/src/store/chatStore.ts)
+
+채팅 메시지 히스토리 및 AI 설정 관리:
+- `messages[]` — 채팅 메시지 배열
+- `apiKey` — OpenAI API 키
+- `isLoading` — AI 응답 대기 상태
+
+---
+
+### AI 통합 (`src/services/`)
+
+#### [NEW] [aiService.ts](file:///Users/dhet/workspaces/blueprint_ai/src/services/aiService.ts)
+
+OpenAI Function Calling을 활용한 시트 데이터 CRUD:
+
+**System Prompt**: 시트 구조와 각 탭의 스키마 정보를 포함하여 AI가 올바른 형식으로 데이터를 생성/수정하도록 유도
+
+**Function Definitions**:
+- `add_row` — 특정 탭에 행 추가
+- `update_row` — 특정 탭의 행 수정
+- `delete_row` — 특정 탭의 행 삭제
+- `get_sheet_data` — 현재 시트 데이터 조회 (AI가 컨텍스트를 위해 사용)
+
+AI가 function call을 반환하면 자동으로 Zustand store에 반영
+
+---
+
+### UI 컴포넌트 (`src/components/`)
+
+#### [NEW] [ChatPanel.tsx](file:///Users/dhet/workspaces/blueprint_ai/src/components/ChatPanel.tsx)
+- 채팅 메시지 목록 (사용자/AI 구분)
+- 메시지 입력 영역
+- AI 응답에서 수행된 액션 표시 (예: "✅ 메타 탭에 행 추가됨")
+- API 키 입력 모달
+
+#### [NEW] [SheetViewer.tsx](file:///Users/dhet/workspaces/blueprint_ai/src/components/SheetViewer.tsx)
+- 7개 탭 네비게이션
+- 각 탭별 테이블 뷰 (동적 컬럼)
+- 인라인 편집 지원 (직접 셀 클릭 후 수정)
+- 행 추가/삭제 버튼
+
+#### [NEW] [ExportPanel.tsx](file:///Users/dhet/workspaces/blueprint_ai/src/components/ExportPanel.tsx)
+- Excel 다운로드 버튼
+- JSON 다운로드 버튼
+- 전체 시트 또는 개별 탭 선택 옵션
+
+#### [NEW] [Header.tsx](file:///Users/dhet/workspaces/blueprint_ai/src/components/Header.tsx)
+- 앱 로고/제목
+- 설정 (API 키)
+- Export 버튼
+
+---
+
+### 메인 레이아웃
+
+#### [NEW] [App.tsx](file:///Users/dhet/workspaces/blueprint_ai/src/App.tsx)
+
+좌우 분할 레이아웃:
+- **좌측 (60%)**: SheetViewer — 탭별 스프레드시트 뷰
+- **우측 (40%)**: ChatPanel — AI 채팅 인터페이스
+- **상단**: Header — 제목, 설정, Export
+
+#### [NEW] [index.css](file:///Users/dhet/workspaces/blueprint_ai/src/index.css)
+
+Blueprint AI 디자인 시스템 기반:
+- 배경색: `#1A1A1A`
+- 주 색상: `#FF7A00`
+- 폰트: Inter / Pretendard
+- 글래스모피즘 효과, 미세 애니메이션
+
+---
+
+### 초기 데이터 (`src/data/`)
+
+#### [NEW] [initialData.ts](file:///Users/dhet/workspaces/blueprint_ai/src/data/initialData.ts)
+
+Google Spreadsheet의 기존 데이터를 초기값으로 포함하여 앱 시작 시 Pre-populate
+
+---
+
+## Verification Plan
+
+### 자동 검증 (Browser Test)
+1. `npm run dev`로 개발 서버 시작
+2. 브라우저에서 앱 접속하여 시각적 확인:
+   - 7개 탭이 모두 표시되는지
+   - 각 탭에 올바른 컬럼이 표시되는지
+   - 다크 테마가 적용되었는지
+3. 채팅 UI에 메시지 입력 가능 여부 확인
+4. Export 버튼 클릭 시 파일 다운로드 여부 확인
+
+### 수동 검증 (User)
+1. OpenAI API 키를 입력하고 AI 채팅이 동작하는지 확인
+2. AI에게 "메타 탭에 새 프로젝트를 추가해줘"와 같은 명령을 보내 데이터가 추가되는지 확인
+3. "전역 규칙에서 Rule_ID가 POL-001인 항목을 삭제해줘" 명령으로 삭제 기능 확인
+4. Excel/JSON 다운로드 후 파일 내용이 올바른지 확인

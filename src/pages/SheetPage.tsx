@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import Header from '../components/Header';
 import SheetViewer from '../components/SheetViewer';
+import FigmaEmbed from '../components/FigmaEmbed';
 import ChatPanel from '../components/ChatPanel';
 import { useSheetStore } from '../store/sheetStore';
 import { useSheetSync } from '../hooks/useSheetSync';
@@ -42,6 +43,7 @@ export default function SheetPage() {
             <Header />
             <main className="app-main">
                 <SheetViewer />
+                <FigmaEmbed />
                 <ChatPanel />
             </main>
         </div>

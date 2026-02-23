@@ -91,6 +91,31 @@ export const rowsRelations = relations(rows, ({ one }) => ({
   sheet: one(sheets, { fields: [rows.sheetId], references: [sheets.id] }),
 }));
 
+// ─── Designs ─────────────────────────────────────────────────────────────────
+
+export const designs = pgTable("designs", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  sheetId: uuid("sheet_id")
+    .notNull()
+    .references(() => sheets.id, { onDelete: "cascade" }),
+  screenId: varchar("screen_id", { length: 50 }),
+  name: varchar("name", { length: 200 }).notNull(),
+  version: integer("version").default(1).notNull(),
+  data: jsonb("data").notNull(),
+  createdBy: uuid("created_by")
+    .notNull()
+    .references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => [
+  index("designs_sheet_id_idx").on(t.sheetId),
+]);
+
+export const designsRelations = relations(designs, ({ one }) => ({
+  sheet: one(sheets, { fields: [designs.sheetId], references: [sheets.id] }),
+  creator: one(users, { fields: [designs.createdBy], references: [users.id] }),
+}));
+
 // ─── MCP Tokens ──────────────────────────────────────────────────────────────
 
 export const mcpTokens = pgTable("mcp_tokens", {

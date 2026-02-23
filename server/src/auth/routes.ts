@@ -1,8 +1,45 @@
 import { Router } from "express";
 import passport from "passport";
+import { eq } from "drizzle-orm";
 import { config } from "../config.js";
+import { db } from "../db/connection.js";
+import { users } from "../db/schema.js";
 
 export const authRouter = Router();
+
+// ─── Dev Login (개발 환경 전용) ──────────────────────────────────────────────
+
+if (config.nodeEnv === "development") {
+  authRouter.get("/dev-login", async (req, res) => {
+    // 데모 유저 찾기 또는 생성
+    let [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, "dev@sindri.local"))
+      .limit(1);
+
+    if (!user) {
+      [user] = await db
+        .insert(users)
+        .values({
+          email: "dev@sindri.local",
+          name: "Dev User",
+          avatarUrl: null,
+          provider: "dev",
+          providerId: "dev-001",
+        })
+        .returning();
+    }
+
+    req.login(user, (err) => {
+      if (err) {
+        res.status(500).json({ error: "Login failed" });
+        return;
+      }
+      res.redirect(`${config.clientUrl}/dashboard`);
+    });
+  });
+}
 
 // ─── Google OAuth ────────────────────────────────────────────────────────────
 

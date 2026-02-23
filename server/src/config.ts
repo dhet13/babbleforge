@@ -26,5 +26,5 @@ export const config = {
   },
 
   clientUrl: process.env.CLIENT_URL || "http://localhost:5173",
-  corsOrigin: (process.env.CORS_ORIGIN || "http://localhost:5173").split(","),
+  corsOrigin: (process.env.CORS_ORIGIN || "http://localhost:5173,https://www.figma.com").split(","),
 } as const;

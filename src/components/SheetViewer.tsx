@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { useSheetStore } from '../store/sheetStore';
+import { useFigmaStore } from '../store/figmaStore';
 import { TAB_CONFIGS } from '../data/tabConfigs';
 import type { TabName, SheetRow } from '../types/sheets';
 
@@ -54,6 +55,18 @@ export default function SheetViewer() {
     const handleDeleteRow = async (id: string) => {
         await deleteRow(activeTab, id);
     };
+
+    const { figmaUrl, setEmbedVisible } = useFigmaStore();
+
+    const handleFigmaFrameClick = useCallback(
+        (frameName: string) => {
+            if (!frameName) return;
+            if (figmaUrl) {
+                setEmbedVisible(true);
+            }
+        },
+        [figmaUrl, setEmbedVisible]
+    );
 
     return (
         <div className="sheet-viewer">
@@ -140,6 +153,14 @@ export default function SheetViewer() {
                                                         onKeyDown={handleCellKeyDown}
                                                         autoFocus
                                                     />
+                                                ) : activeTab === 'screens' && col.key === 'Figma_Frame_Name' && r[col.key] ? (
+                                                    <span
+                                                        className="cell-text figma-frame-link"
+                                                        onClick={() => handleFigmaFrameClick(r[col.key])}
+                                                        title="Figma에서 보기"
+                                                    >
+                                                        {r[col.key]}
+                                                    </span>
                                                 ) : (
                                                     <span className="cell-text">{r[col.key] || ''}</span>
                                                 )}

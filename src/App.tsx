@@ -4,6 +4,7 @@ import { useAuthStore } from './store/authStore';
 import LandingPage from './pages/LandingPage';
 import DashboardPage from './pages/DashboardPage';
 import SheetPage from './pages/SheetPage';
+import DesignModePage from './pages/DesignModePage';
 import ProtectedRoute from './components/ProtectedRoute';
 import './App.css';
 
@@ -30,6 +31,14 @@ function App() {
                 element={
                     <ProtectedRoute>
                         <SheetPage />
+                    </ProtectedRoute>
+                }
+            />
+            <Route
+                path="/projects/:projectId/sheets/:sheetId/design"
+                element={
+                    <ProtectedRoute>
+                        <DesignModePage />
                     </ProtectedRoute>
                 }
             />

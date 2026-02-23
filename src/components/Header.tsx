@@ -1,20 +1,55 @@
 import { useState } from 'react';
-import { Settings, Download, FileJson, FileSpreadsheet, Trash2, LogOut, ArrowLeft } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { useChatStore } from '../store/chatStore';
+import { Settings, Download, FileJson, FileSpreadsheet, Trash2, LogOut, ArrowLeft, PenTool, Palette } from 'lucide-react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { useChatStore, MODEL_OPTIONS } from '../store/chatStore';
+import type { AiProvider } from '../store/chatStore';
 import { useAuthStore } from '../store/authStore';
+import { useFigmaStore } from '../store/figmaStore';
 import { exportToExcel, exportToJSON } from '../services/exportService';
 
 export default function Header() {
-    const { apiKey, setApiKey, showApiKeyModal, setShowApiKeyModal, clearMessages } = useChatStore();
+    const {
+        provider, apiKeys, model, figmaAccessToken,
+        setProvider, setApiKey, setModel, setFigmaAccessToken,
+        showApiKeyModal, setShowApiKeyModal, clearMessages,
+    } = useChatStore();
     const { user, logout } = useAuthStore();
+    const { isEmbedVisible, toggleEmbed } = useFigmaStore();
     const navigate = useNavigate();
-    const [tempKey, setTempKey] = useState(apiKey);
+    const { projectId, sheetId } = useParams<{ projectId: string; sheetId: string }>();
     const [showExport, setShowExport] = useState(false);
 
-    const handleSaveKey = () => {
-        setApiKey(tempKey);
+    // Modal local state
+    const [tempProvider, setTempProvider] = useState<AiProvider>(provider);
+    const [tempKeys, setTempKeys] = useState({ ...apiKeys });
+    const [tempModel, setTempModel] = useState(model);
+    const [tempFigmaToken, setTempFigmaToken] = useState(figmaAccessToken);
+
+    const hasKey = !!apiKeys[provider];
+
+    const handleOpenModal = () => {
+        setTempProvider(provider);
+        setTempKeys({ ...apiKeys });
+        setTempModel(model);
+        setTempFigmaToken(figmaAccessToken);
+        setShowApiKeyModal(true);
+    };
+
+    const handleSave = () => {
+        setProvider(tempProvider);
+        setApiKey('openai', tempKeys.openai);
+        setApiKey('anthropic', tempKeys.anthropic);
+        setApiKey('gemini', tempKeys.gemini);
+        setModel(tempModel);
+        setFigmaAccessToken(tempFigmaToken);
         setShowApiKeyModal(false);
+    };
+
+    const handleProviderTab = (p: AiProvider) => {
+        setTempProvider(p);
+        // Switch to default model for the new provider
+        const defaultModel = MODEL_OPTIONS[p][0].value;
+        setTempModel(defaultModel);
     };
 
     return (
@@ -48,6 +83,25 @@ export default function Header() {
                             </button>
                         </>
                     )}
+                    {projectId && sheetId && (
+                        <button
+                            className="header-btn design-mode-btn"
+                            onClick={() => navigate(`/projects/${projectId}/sheets/${sheetId}/design`)}
+                            title="전체화면 디자인 모드"
+                        >
+                            <Palette size={16} />
+                            <span>Design Mode</span>
+                        </button>
+                    )}
+                    <button
+                        className={`header-btn ${isEmbedVisible ? 'figma-active' : ''}`}
+                        onClick={toggleEmbed}
+                        title={isEmbedVisible ? 'Figma 닫기' : 'Figma 열기'}
+                    >
+                        <PenTool size={16} />
+                        <span>Figma</span>
+                    </button>
+
                     <button
                         className="header-btn"
                         onClick={clearMessages}
@@ -89,14 +143,11 @@ export default function Header() {
                     </div>
 
                     <button
-                        className={`header-btn ${apiKey ? 'configured' : 'warning'}`}
-                        onClick={() => {
-                            setTempKey(apiKey);
-                            setShowApiKeyModal(true);
-                        }}
+                        className={`header-btn ${hasKey ? 'configured' : 'warning'}`}
+                        onClick={handleOpenModal}
                     >
                         <Settings size={16} />
-                        <span>{apiKey ? 'API 설정됨' : 'API 키 필요'}</span>
+                        <span>{hasKey ? `${provider === 'openai' ? 'OpenAI' : provider === 'anthropic' ? 'Claude' : 'Gemini'} 설정됨` : 'API 키 필요'}</span>
                     </button>
                 </div>
             </header>
@@ -104,25 +155,83 @@ export default function Header() {
             {showApiKeyModal && (
                 <div className="modal-overlay" onClick={() => setShowApiKeyModal(false)}>
                     <div className="modal" onClick={(e) => e.stopPropagation()}>
-                        <h2>🔑 OpenAI API Key 설정</h2>
+                        <h2>AI 설정</h2>
                         <p className="modal-desc">
-                            AI 채팅 기능을 사용하려면 OpenAI API 키가 필요합니다.
-                            <br />
-                            키는 브라우저에만 저장되며 외부로 전송되지 않습니다.
+                            AI 프로바이더를 선택하고 API 키를 입력하세요.
+                            키는 브라우저에만 저장됩니다.
                         </p>
-                        <input
-                            type="password"
-                            placeholder="sk-..."
-                            value={tempKey}
-                            onChange={(e) => setTempKey(e.target.value)}
-                            className="modal-input"
-                            autoFocus
-                        />
+
+                        <div className="provider-tabs">
+                            <button
+                                className={`provider-tab ${tempProvider === 'openai' ? 'active' : ''}`}
+                                onClick={() => handleProviderTab('openai')}
+                            >
+                                OpenAI
+                            </button>
+                            <button
+                                className={`provider-tab ${tempProvider === 'anthropic' ? 'active' : ''}`}
+                                onClick={() => handleProviderTab('anthropic')}
+                            >
+                                Claude
+                            </button>
+                            <button
+                                className={`provider-tab ${tempProvider === 'gemini' ? 'active' : ''}`}
+                                onClick={() => handleProviderTab('gemini')}
+                            >
+                                Gemini
+                            </button>
+                        </div>
+
+                        <div className="modal-field">
+                            <label className="modal-label">API Key</label>
+                            <input
+                                type="password"
+                                placeholder={tempProvider === 'openai' ? 'sk-...' : tempProvider === 'anthropic' ? 'sk-ant-...' : 'AIza...'}
+                                value={tempKeys[tempProvider]}
+                                onChange={(e) =>
+                                    setTempKeys({ ...tempKeys, [tempProvider]: e.target.value })
+                                }
+                                className="modal-input"
+                                autoFocus
+                            />
+                        </div>
+
+                        <div className="modal-field">
+                            <label className="modal-label">모델</label>
+                            <select
+                                className="modal-select"
+                                value={tempModel}
+                                onChange={(e) => setTempModel(e.target.value)}
+                            >
+                                {MODEL_OPTIONS[tempProvider].map((opt) => (
+                                    <option key={opt.value} value={opt.value}>
+                                        {opt.label}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="modal-divider" />
+
+                        <div className="modal-field">
+                            <label className="modal-label">Figma Access Token</label>
+                            <input
+                                type="password"
+                                placeholder="figd_..."
+                                value={tempFigmaToken}
+                                onChange={(e) => setTempFigmaToken(e.target.value)}
+                                className="modal-input"
+                            />
+                            <span className="modal-hint">
+                                Figma Settings &gt; Personal Access Tokens에서 생성
+                            </span>
+                        </div>
+
                         <div className="modal-actions">
                             <button className="btn secondary" onClick={() => setShowApiKeyModal(false)}>
                                 취소
                             </button>
-                            <button className="btn primary" onClick={handleSaveKey}>
+                            <button className="btn primary" onClick={handleSave}>
                                 저장
                             </button>
                         </div>

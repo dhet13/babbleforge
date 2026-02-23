@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+        font-family: Inter, -apple-system, BlinkMacSystemFont, sans-serif;
+        font-size: 12px;
+        color: #333;
+        background: #fff;
+    }
+
+    .section { padding: 12px; border-bottom: 1px solid #e5e5e5; }
+    .section-title {
+        font-size: 11px;
+        font-weight: 600;
+        color: #999;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 8px;
+    }
+
+    .input-group { margin-bottom: 8px; }
+    .input-group label {
+        display: block;
+        font-size: 11px;
+        font-weight: 500;
+        color: #666;
+        margin-bottom: 3px;
+    }
+    .input-group input {
+        width: 100%;
+        padding: 6px 8px;
+        font-size: 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        outline: none;
+    }
+    .input-group input:focus { border-color: #18a0fb; }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        padding: 6px 12px;
+        font-size: 11px;
+        font-weight: 600;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: opacity 0.15s;
+    }
+    .btn:hover { opacity: 0.85; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-primary { background: #18a0fb; color: #fff; }
+    .btn-secondary { background: #f0f0f0; color: #333; }
+    .btn-success { background: #1bc47d; color: #fff; }
+    .btn-full { width: 100%; }
+
+    .connection-status {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        margin-top: 6px;
+    }
+    .status-dot {
+        width: 8px; height: 8px;
+        border-radius: 50%;
+    }
+    .status-dot.connected { background: #1bc47d; }
+    .status-dot.disconnected { background: #ccc; }
+    .status-dot.error { background: #f24822; }
+
+    .screen-list { max-height: 220px; overflow-y: auto; }
+    .screen-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 0;
+        border-bottom: 1px solid #f5f5f5;
+    }
+    .screen-item:last-child { border-bottom: none; }
+    .screen-checkbox { width: 14px; height: 14px; cursor: pointer; }
+    .screen-info { flex: 1; min-width: 0; }
+    .screen-id {
+        font-family: monospace;
+        font-size: 10px;
+        color: #999;
+    }
+    .screen-name {
+        font-size: 12px;
+        font-weight: 500;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .screen-status {
+        font-size: 10px;
+        font-weight: 600;
+        padding: 2px 6px;
+        border-radius: 8px;
+        white-space: nowrap;
+    }
+    .screen-status.designed { background: #e6f9f0; color: #1bc47d; }
+    .screen-status.in-development { background: #fff3e0; color: #f59e0b; }
+    .screen-status.planned { background: #e8f0fe; color: #3b82f6; }
+
+    .actions {
+        display: flex;
+        gap: 6px;
+        margin-top: 8px;
+    }
+
+    .progress-bar-container {
+        width: 100%;
+        height: 6px;
+        background: #f0f0f0;
+        border-radius: 3px;
+        overflow: hidden;
+        margin-top: 8px;
+    }
+    .progress-bar {
+        height: 100%;
+        background: #18a0fb;
+        border-radius: 3px;
+        transition: width 0.3s ease;
+    }
+    .progress-text {
+        font-size: 11px;
+        color: #666;
+        margin-top: 4px;
+    }
+
+    .project-info {
+        font-size: 13px;
+        font-weight: 600;
+        color: #333;
+    }
+    .project-version {
+        font-size: 11px;
+        color: #999;
+        margin-left: 4px;
+    }
+
+    .hidden { display: none; }
+
+    .error-text {
+        font-size: 11px;
+        color: #f24822;
+        margin-top: 4px;
+    }
+
+    .select-all {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 11px;
+        color: #18a0fb;
+        cursor: pointer;
+        margin-bottom: 4px;
+        background: none;
+        border: none;
+        font-weight: 500;
+    }
+</style>
+</head>
+<body>
+    <!-- Connection Section -->
+    <div class="section" id="connect-section">
+        <div class="section-title">연결 설정</div>
+        <div class="input-group">
+            <label>Server URL</label>
+            <input type="url" id="server-url" placeholder="http://localhost:3100" value="http://localhost:3100" />
+        </div>
+        <div class="input-group">
+            <label>MCP Token</label>
+            <input type="password" id="mcp-token" placeholder="Bearer 토큰 입력..." />
+        </div>
+        <div class="input-group">
+            <label>Sheet ID</label>
+            <input type="text" id="sheet-id" placeholder="시트 UUID" />
+        </div>
+        <button class="btn btn-primary btn-full" id="connect-btn">연결</button>
+        <div class="connection-status" id="conn-status">
+            <div class="status-dot disconnected" id="status-dot"></div>
+            <span id="status-text">연결 안됨</span>
+        </div>
+        <div class="error-text hidden" id="conn-error"></div>
+    </div>
+
+    <!-- Sheet Data Section -->
+    <div class="section hidden" id="data-section">
+        <div class="section-title">시트 데이터</div>
+        <div>
+            <span class="project-info" id="project-name"></span>
+            <span class="project-version" id="project-version"></span>
+        </div>
+
+        <div style="margin-top: 10px;">
+            <div class="section-title" style="margin-bottom: 4px;">스크린 목록</div>
+            <button class="select-all" id="select-all-btn">전체 선택</button>
+            <div class="screen-list" id="screen-list"></div>
+        </div>
+
+        <div class="actions">
+            <button class="btn btn-primary" id="generate-all-btn" style="flex:1;">전체 생성</button>
+            <button class="btn btn-secondary" id="generate-selected-btn" style="flex:1;">선택 생성</button>
+        </div>
+        <div class="actions">
+            <button class="btn btn-success" id="sync-tokens-btn" style="flex:1;">토큰 동기화</button>
+        </div>
+    </div>
+
+    <!-- Import from Sindri Editor -->
+    <div class="section hidden" id="import-section">
+        <div class="section-title">디자인 가져오기</div>
+        <p style="font-size: 11px; color: #666; margin-bottom: 8px;">
+            Sindri Sheet 에디터에서 생성한 와이어프레임을 Figma로 가져옵니다.
+        </p>
+        <button class="btn btn-primary btn-full" id="import-latest-btn">최신 디자인 가져오기</button>
+        <div id="import-status" style="margin-top: 6px; font-size: 11px; color: #666;"></div>
+    </div>
+
+    <!-- Progress Section -->
+    <div class="section hidden" id="progress-section">
+        <div class="section-title">진행 상태</div>
+        <div class="progress-bar-container">
+            <div class="progress-bar" id="progress-bar" style="width: 0%;"></div>
+        </div>
+        <div class="progress-text" id="progress-text">준비 중...</div>
+    </div>
+
+    <!-- INLINE_SCRIPT -->
+</body>
+</html>
